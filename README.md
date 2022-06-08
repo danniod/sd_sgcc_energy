@@ -1,13 +1,8 @@
-# 北京用电信息查询
+# 山东用电信息查询
 
-通过“国网北京电力”微信公众号的接口，采集你的家庭用电信息。
+通过[山东掌上电力](https://www.sd.sgcc.com.cn/ppm)的接口，采集山东用户的家庭用电信息。
 
-# 使用之前
-首先关注“国网北京电力”微信公众号，打开微营业厅->个人中心->户号关联，确保你至少已关联一个北京国网电力的户号。如果没有关联，在此进行户号关联操作。此时点开微营业厅，应已经可以看到关联的用户，点击用户，可以看到该用户的用电信息。
-
-使用任何网络抓包软件，如安卓手机的Fiddler， 苹果手机的Stream，进行抓包，过滤条件可以选择"HTTP"。抓包时在微营业厅上进行操作，查看一下用电信息。看到HTTP HEADER中有内容为“user_openid=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX”的内容，将user_openid=后的内容复制下来，如果最后是以\r\n结尾，则去掉\r\n，如果后部包含等于号"="，保留等于号。这个字符串就是openid，保存备用。
-
-![screenshot](https://user-images.githubusercontent.com/27534713/129531245-c5190326-3258-4181-a8e9-e86598ff27bf.png)
+> forked from [georgezhao2010/bj_sgcc_energy](https://github.com/georgezhao2010/bj_sgcc_energy)
 
 
 # 安装
@@ -17,16 +12,16 @@
 在configuration.yaml中，增加配置如下：
 ```
 bj_sgcc_energy:
-  openid: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' #此为微信公众号中抓取的openid
+  openid: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' #此为微信掌上电力中抓取的openid
 ```
 重新启动Home Assistant
 
 # 特性
-- 如果公众号中关联了多个北京国电用户，则支持多个用户用电信息的采集。
+- 支持多个用户用电信息的采集。
 - 支持实时用电单价实体，可用于Home Assistant 2021.8.X最新的能源模块的实时电费计算。
 - 数据为定时更新，更新间隔为10分钟。
-- 支持北京市居民的阶梯用电计价策略
-- 支持北京市非居民的峰平谷用电计价策略(Beta)
+- 支持居民的阶梯用电计价策略
+- 支持非居民的峰平谷用电计价策略(Beta)
 
 ## 传感器
 包含的传感器
@@ -43,7 +38,7 @@ bj_sgcc_energy:
 | sensor.XXXXXXXXXX_year_consume_bill | 本年度电费 |
 | sensor.XXXXXXXXXX_history_* | 过去12个月用电 | name - 月份<br/>consume_bill - 该月电费| \*取值为1-12<br/> |
 
-其中XXXXXXXXXX为北京国电用户户号
+其中XXXXXXXXXX为国电用户户号
 
 # 示例
 历史数据采用[flex-table-card](https://github.com/custom-cards/flex-table-card)展示
