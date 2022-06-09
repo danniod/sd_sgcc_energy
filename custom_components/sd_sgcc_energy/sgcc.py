@@ -1,15 +1,23 @@
 import requests
 import logging
+import uuid
+import ddddocr
+import time
+import rsa
+import hashlib
+import base64
 import datetime
 from .const import PGC_PRICE
 
 _LOGGER = logging.getLogger(__name__)
 
-AUTH_URL = "http://weixin.bj.sgcc.com.cn/ott/app/auth/authorize?target=M_YECX"
-CONSNO_URL = "http://weixin.bj.sgcc.com.cn/ott/app/follower/consumer/prepaid/list"
-REMAIN_URL = "http://weixin.bj.sgcc.com.cn/ott/app/elec/account/query"
-DETAIL_URL = "http://weixin.bj.sgcc.com.cn/ott/app/electric/bill/overview"
-BILLINFO_URL = "http://weixin.bj.sgcc.com.cn/ott/app/electric/bill/queryElecBillInfoEveryYear"
+BASE_SITE = "https://www.sd.sgcc.com.cn/ppm"
+CAPTCHA_URL = f"{BASE_SITE}/common/captcha.jhtml"
+PUBLIC_KEY_URL = f"{BASE_SITE}/common/public_key.jhtml"
+LOGIN_URL = f"{BASE_SITE}/login/submit.jhtml"
+REMAIN_URL = "http://weixin.sd.sgcc.com.cn/ott/app/elec/account/query"
+DETAIL_URL = "http://weixin.sd.sgcc.com.cn/ott/app/electric/bill/overview"
+BILLINFO_URL = "http://weixin.sd.sgcc.com.cn/ott/app/electric/bill/queryElecBillInfoEveryYear"
 
 LEVEL_CONSUME = ["levelOneSum", "levelTwoSum", "levelThreeSum"]
 LEVEL_REMAIN = ["levelOneRemain", "levelTwoRemain"]
@@ -32,27 +40,88 @@ def get_pgv_type(bill_range):
 
 
 class SGCCData:
-    def __init__(self, openid):
-        self._openid = openid
-        self._session = "e7d569dc-0806-4b30-9379-169ccf33e92a"
+    def __init__(self, token=None):
+        self._exponent = None
+        self._modulus = None
+        self._captchaId = None
+        self._captcha = None
+        self._token = token
+        self._session = "b7a59b3f-d120-47c1-ab5e-bb24f721d144"
         self._info = {}
-
-    def getToken(self):
-        headers = {
-            "Host": "weixin.bj.sgcc.com.cn",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Upgrade-Insecure-Requests": "1",
-            "Cookie": f"SESSION={self._session}; user_openid={self._openid}",
+        self._headers = {
+            "Host": "www.sd.sgcc.com.cn",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "Referer": f"{BASE_SITE}/login.jhtml",
+            "DNT": "1",
+            "Cookie": f"SESSION={self._session}; token={self._token}",
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 "
                           "(KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.7(0x1800072c) "
                           "NetType/WIFI Language/zh_CN",
             "Accept-Language": "zh-cn",
-            "Accept-Encoding": "gzip, deflate",
+            "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
+        }
+
+    def get_captcha_id(self):
+        self._captchaId = uuid.uuid1()
+        r = requests.get(CAPTCHA_URL + f"?captchaId={self._captchaId}", headers=self._headers, allow_redirects=False,
+                         timeout=10)
+        self._captcha = ddddocr.DdddOcr().classification(r.content) if r.status_code == 200 else None
+
+    def get_public_key(self):
+        r = requests.get(PUBLIC_KEY_URL + f"?_={int(time.time() * 1000)}", headers=self._headers, timeout=10)
+        if r.status_code == 200:
+            result = r.json()
+            self._modulus = base64.b64decode(result["modulus"]).hex()
+            self._exponent = base64.b64decode(result["exponent"]).hex()
+
+    def enc_pass(self, s):
+        pub_key = rsa.PublicKey(int(self._modulus, 16), int(self._exponent, 16))
+        h = hashlib.md5(s.encode("utf-8")).hexdigest() + s
+        encrypted = rsa.encrypt(h.encode("utf-8"), pub_key)
+        return base64.b64encode(encrypted)
+
+    def get_token(self):
+        headers = {
+            "Host": "www.sd.sgcc.com.cn",
+            "Connection": "keep-alive",
+            "sec-ch-ua": '" Not A;Brand";v="99", "Chromium";v="102", "Google Chrome";v="102"',
+            "DNT": "1",
+            "X-Ca-Nonce": f"{uuid.uuid4()}",
+            "sec-ch-ua-mobile": "?0",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.61 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-Ca-Timestamp": f"{int(time.time() * 1000)}",
+            "token": self._token,
+            "sec-ch-ua-platform": '"macOS"',
+            "Origin": "https://www.sd.sgcc.com.cn",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Dest": "empty",
+            "Referer": "https://www.sd.sgcc.com.cn/ppm/login.jhtml",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Cookie": f"SESSION={self._session}; token={self._token}",
+
+        }
+        username = ""
+        password = ''
+
+        data = {
+            "checkType": "1",
+            "city": "济南市",
+            "district": "历下区",
+            "username": self.enc_pass(username),
+            "enPassword": self.enc_pass(password),
+            "isRemberme": "true",
+            "captchaId": self._captchaId,
+            "captcha": self._captcha,
         }
         ret = True
         try:
-            r = requests.get(AUTH_URL, headers=headers, allow_redirects=False, timeout=10)
+            r = requests.post(LOGIN_URL, data=data, headers=headers, allow_redirects=False, timeout=10)
             if r.status_code == 200 or r.status_code == 302:
                 response_headers = r.headers
                 if "Set-Cookie" in response_headers:
@@ -69,18 +138,19 @@ class SGCCData:
 
     def commonHeaders(self):
         headers = {
-            "Host": "weixin.bj.sgcc.com.cn",
+            "Host": "www.sd.sgcc.com.cn",
+            "Referer": f"{BASE_SITE}/",
+            "Host": "weixin.sd.sgcc.com.cn",
             "Accept": "*/*",
             "X-Requested-With": "XMLHttpRequest",
             "Accept-Language": "zh-cn",
             "Accept-Encoding": "gzip, deflate",
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Origin": "http://weixin.bj.sgcc.com.cn",
+            "Origin": "http://weixin.sd.sgcc.com.cn",
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 "
                           "(KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.7(0x1800072c) "
                           "NetType/WIFI Language/zh_CN",
             "Connection": "keep-alive",
-            "Cookie": f"SESSION={self._session}; user_openid={self._openid}"
+            "Cookie": f"SESSION={self._session}; token={self._token}"
         }
         return headers
 
