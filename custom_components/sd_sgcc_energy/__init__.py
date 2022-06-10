@@ -15,9 +15,10 @@ UPDATE_INTERVAL = timedelta(minutes=10)
 
 async def async_setup(hass: HomeAssistant, hass_config: dict):
     config = hass_config[DOMAIN]
-    openid = config.get("openid")
-    if openid is not None:
-        coordinator = GJDWCorrdinator(hass, openid)
+    username = config.get("username")
+    password = config.get("password")
+    if username is not None or password is not None:
+        coordinator = GJDWCorrdinator(hass, username, password)
         hass.data[DOMAIN] = coordinator
         await coordinator.async_refresh()
         hass.async_create_task(discovery.async_load_platform(
@@ -28,7 +29,7 @@ async def async_setup(hass: HomeAssistant, hass_config: dict):
 
 
 class GJDWCorrdinator(DataUpdateCoordinator):
-    def __init__(self, hass, openid):
+    def __init__(self, hass, username, password):
         super().__init__(
             hass,
             _LOGGER,
@@ -36,7 +37,7 @@ class GJDWCorrdinator(DataUpdateCoordinator):
             update_interval=UPDATE_INTERVAL
         )
         self._hass = hass
-        self._sgcc = SGCCData(openid)
+        self._sgcc = SGCCData(username, password)
 
     async def _async_update_data(self):
         _LOGGER.debug("Data updating...")

@@ -40,20 +40,24 @@ def get_pgv_type(bill_range):
 
 
 class SGCCData:
-    def __init__(self, token=None):
+    def __init__(self, username, password):
+        self._username = username
+        self._password = password
         self._exponent = None
         self._modulus = None
         self._captchaId = None
         self._captcha = None
-        self._token = token
-        self._session = "b7a59b3f-d120-47c1-ab5e-bb24f721d144"
         self._info = {}
+        self._cookies = {
+            "SESSION": "9030c794-58ea-48e4-8132-e0fd2317500d",
+            "token": "1ec53605-cf3c-439a-b02e-2a7299785bb0"
+        }
         self._headers = {
             "Host": "www.sd.sgcc.com.cn",
             "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
             "Referer": f"{BASE_SITE}/login.jhtml",
             "DNT": "1",
-            "Cookie": f"SESSION={self._session}; token={self._token}",
+            "Cookie": "; ".join([str(x) + "=" + str(y) for x, y in self._cookies.items()]),
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 "
                           "(KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.7(0x1800072c) "
                           "NetType/WIFI Language/zh_CN",
@@ -63,10 +67,14 @@ class SGCCData:
         }
 
     def get_captcha_id(self):
+        ret = False
         self._captchaId = uuid.uuid1()
         r = requests.get(CAPTCHA_URL + f"?captchaId={self._captchaId}", headers=self._headers, allow_redirects=False,
                          timeout=10)
-        self._captcha = ddddocr.DdddOcr().classification(r.content) if r.status_code == 200 else None
+        if r.status_code == 200 or r.status_code == 302:
+            self._captcha = ddddocr.DdddOcr().classification(r.content)
+            ret = True
+        return ret
 
     def get_public_key(self):
         r = requests.get(PUBLIC_KEY_URL + f"?_={int(time.time() * 1000)}", headers=self._headers, timeout=10)
@@ -81,7 +89,7 @@ class SGCCData:
         encrypted = rsa.encrypt(h.encode("utf-8"), pub_key)
         return base64.b64encode(encrypted)
 
-    def get_token(self):
+    def login(self):
         headers = {
             "Host": "www.sd.sgcc.com.cn",
             "Connection": "keep-alive",
@@ -94,7 +102,7 @@ class SGCCData:
             "Accept": "application/json, text/javascript, */*; q=0.01",
             "X-Requested-With": "XMLHttpRequest",
             "X-Ca-Timestamp": f"{int(time.time() * 1000)}",
-            "token": self._token,
+            "token": self._cookies["token"],
             "sec-ch-ua-platform": '"macOS"',
             "Origin": "https://www.sd.sgcc.com.cn",
             "Sec-Fetch-Site": "same-origin",
@@ -103,8 +111,7 @@ class SGCCData:
             "Referer": "https://www.sd.sgcc.com.cn/ppm/login.jhtml",
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Cookie": f"SESSION={self._session}; token={self._token}",
-
+            "Cookie": "; ".join([str(x) + "=" + str(y) for x, y in self._cookies.items()]),
         }
         username = ""
         password = ''
@@ -113,27 +120,32 @@ class SGCCData:
             "checkType": "1",
             "city": "济南市",
             "district": "历下区",
-            "username": self.enc_pass(username),
-            "enPassword": self.enc_pass(password),
+            "username": self.enc_pass(self._username),
+            "enPassword": self.enc_pass(self._password),
             "isRemberme": "true",
             "captchaId": self._captchaId,
             "captcha": self._captcha,
         }
-        ret = True
+        ret = False
         try:
             r = requests.post(LOGIN_URL, data=data, headers=headers, allow_redirects=False, timeout=10)
+            _LOGGER.debug(f"login submit with cookies[{self._cookies}] "
+                          f"response status[{r.status_code}], result[{r.json()}]")
+
             if r.status_code == 200 or r.status_code == 302:
                 response_headers = r.headers
                 if "Set-Cookie" in response_headers:
-                    set_cookie = response_headers["Set-Cookie"]
-                    self._session = set_cookie.split(";")[0].split("=")[1]
-                    _LOGGER.debug(f"Got new session {self._session}")
+                    set_cookies = response_headers["Set-Cookie"].split("Path=/, ")
+                    for set_cookie in set_cookies:
+                        cookie = set_cookie.split(";")[0].split("=")
+                        self._cookies[cookie[0]] = cookie[1]
+                    _LOGGER.debug(f"login submit response set-cookie[{set_cookies}]")
+                if r.json()["type"] == "success":
+                    ret = True
             else:
-                ret = False
-                _LOGGER.error(f"getToken response status_code = {r.status_code}")
+                _LOGGER.error(f"login response status_code = {r.status_code}")
         except Exception as e:
-            ret = False
-            _LOGGER.error(f"getToken response got error: {e}")
+            _LOGGER.error(f"login response got error: {e}")
         return ret
 
     def commonHeaders(self):
@@ -300,7 +312,7 @@ class SGCCData:
             pass
 
     def getData(self):
-        if self.getToken() and self.getConsNo():
+        if self.login(self._username, self._password) and self.getConsNo():
             for consNo in self._info.keys():
                 self.getBalance(consNo)
                 self.getDetail(consNo)
