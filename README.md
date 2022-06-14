@@ -6,14 +6,16 @@
 
 
 # 安装
-使用HACS以自定义存储库方式安装，或者从[Latest release](https://github.com/georgezhao2010/bj_sgcc_energy/releases/latest)下载最新的Release版本，将其中的`custom_components/bj_sgcc_engergy`放到你的Home Assistant的`custom_components/bj_sgcc_engergy`中。
+将其中的`custom_components/sd_sgcc_engergy`放到你的Home Assistant的config目录下，即`/path/to/config/custom_components/sd_sgcc_engergy`。
 
 # 配置
-在configuration.yaml中，增加配置如下：
+在configuration.yaml中，增加在掌上电力注册的用户信息配置，如下：
 ```
-bj_sgcc_energy:
-  openid: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' #此为微信掌上电力中抓取的openid
+sd_sgcc_energy:
+  username: '13888888888' 
+  password: 'password'
 ```
+()
 重新启动Home Assistant
 
 # 特性
