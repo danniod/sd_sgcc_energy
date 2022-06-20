@@ -7,6 +7,7 @@ import rsa
 import hashlib
 import base64
 import datetime
+import re
 from pyquery import PyQuery
 from .const import PGC_PRICE
 
@@ -20,6 +21,8 @@ SUBMIT_URL = f"{BASE_SITE}/login/submit.jhtml"
 MENU_URL = f"{BASE_SITE}/powerCommon/allMenu.jhtml"
 CHANGE_CONS_NO_URL = f"{BASE_SITE}/member/powerUse/changeUser.jhtml"
 POWER_TREND_DAY_URL = f"{BASE_SITE}/member/powerUse/powerTrendDay.jhtml"
+METER_READ_URL = f"{BASE_SITE}/member/powerUse/dayRead.jhtml"
+VIRTUAL_METER_URL = f"{BASE_SITE}/member/powerUse/virtualMeters.jhtml"
 REMAIN_URL = "http://weixin.sd.sgcc.com.cn/ott/app/elec/account/query"
 DETAIL_URL = "http://weixin.sd.sgcc.com.cn/ott/app/electric/bill/overview"
 BILLINFO_URL = "http://weixin.sd.sgcc.com.cn/ott/app/electric/bill/queryElecBillInfoEveryYear"
@@ -158,7 +161,7 @@ class SGCCData:
             _LOGGER.error(f"login response got error: {e}")
         return ret
 
-    def get_headers(self, referer_type=None):
+    def get_headers(self, referer_type=None, referer_url=None):
 
         headers = {
             "Host": "www.sd.sgcc.com.cn",
@@ -191,10 +194,11 @@ class SGCCData:
 
                     others_cons = cons("a:not(.selectedCons)")
                     for others in others_cons:
-                        cons_no = others.attr("name")
+                        another_cons = PyQuery(others)
+                        cons_no = another_cons.attr("name")
                         if cons_no not in self._info:
                             _LOGGER.debug(f"Got ConsNo {cons_no}")
-                            self._info[cons_no] = {"cons_name": selected_cons.text()[0:selected_cons.text().index("(")]}
+                            self._info[cons_no] = {"cons_name": another_cons.text()[0:another_cons.text().index("(")]}
                 else:
                     ret = False
                     _LOGGER.error(f"getConsNo error: no cons[{cons}]")
@@ -225,6 +229,23 @@ class SGCCData:
             doc = PyQuery(r.text)
             self._info[f"{cons_no}_consumption_daily"] = dict(zip(doc.find('input#ymList').val().split(","),
                                                                   doc.find('input#dlList').val().split(",")))
+
+    def meter(self, cons_no):
+        p = PyQuery(url=VIRTUAL_METER_URL, headers=self.get_headers())
+        script = p('script:contains("var assetList =")')
+        assets = re.search(r"var assetList = \[(.*?)\]", script).group(1).split(",")
+
+        for asset in assets:
+            data = {
+                "assetNo": asset,
+                "fromToday": 0,
+                "_": int(time.time() * 1000)
+            }
+            r = requests.get(METER_READ_URL, params=data,
+                             headers=self.get_headers(referer_url=VIRTUAL_METER_URL), timeout=10)
+            if r.status_code == 200:
+                self._info[cons_no]["meter_now"] = r.json()
+
 
     def get_balance(self, consNo):
         headers = self.get_headers()
@@ -346,14 +367,14 @@ class SGCCData:
             pass
 
     def get_data(self):
-        if len(self._info) < 1:
-            self.login()
-            self.get_cons_no()
+
+        self.get_cons_no()
         for cons_no in self._info.keys():
+            self.meter(cons_no)
             self.change_cons_no(cons_no)
             self.power_trend_days(cons_no)
-            self.get_balance(cons_no)
-            self.get_detail(cons_no)
-            self.get_bill_by_year(cons_no)
+            # self.get_balance(cons_no)
+            # self.get_detail(cons_no)
+            # self.get_bill_by_year(cons_no)
         _LOGGER.debug(f"Data {self._info}")
         return self._info
