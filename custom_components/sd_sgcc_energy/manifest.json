@@ -1,11 +1,11 @@
 {
-  "domain": "bj_sgcc_energy",
-  "name": "北京用电信息查询",
-  "version": "v0.1.2",
-  "documentation": "https://github.com/georgezhao2010/bj_sgcc_energy",
-  "issue_tracker": "https://github.com/georgezhao2010/bj_sgcc_energy/issues",
+  "domain": "sd_sgcc_energy",
+  "name": "网上国网山东用电信息查询",
+  "version": "v0.1.0",
+  "documentation": "https://github.com/danniod/sd_sgcc_energy",
+  "issue_tracker": "https://github.com/danniod/sd_sgcc_energy/issues",
   "iot_class": "cloud_polling",
   "dependencies": [],
   "requirements": [],
-  "codeowners": ["@georgezhao2010"]
+  "codeowners": ["@danniod","@georgezhao2010"]
 }
