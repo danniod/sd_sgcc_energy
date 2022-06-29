@@ -8,7 +8,7 @@ import hashlib
 import base64
 import datetime
 import re
-from pyquery import PyQuery
+from pyquery import PyQuery as pq
 from .const import PGC_PRICE
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,8 @@ CHANGE_CONS_NO_URL = f"{BASE_SITE}/member/powerUse/changeUser.jhtml"
 POWER_TREND_DAY_URL = f"{BASE_SITE}/member/powerUse/powerTrendDay.jhtml"
 METER_READ_URL = f"{BASE_SITE}/member/powerUse/dayRead.jhtml"
 VIRTUAL_METER_URL = f"{BASE_SITE}/member/powerUse/virtualMeters.jhtml"
-REMAIN_URL = "http://weixin.sd.sgcc.com.cn/ott/app/elec/account/query"
+BALANCE_DETAIL_URL = f"{BASE_SITE}/member/powerUse/balanceDetail.jhtml"
+LADDER_URL = f"{BASE_SITE}/member/powerUse/ladderPower.jhtml"
 DETAIL_URL = "http://weixin.sd.sgcc.com.cn/ott/app/electric/bill/overview"
 BILLINFO_URL = "http://weixin.sd.sgcc.com.cn/ott/app/electric/bill/queryElecBillInfoEveryYear"
 
@@ -58,11 +59,12 @@ class SGCCData:
         self._info = {}
         self._cookies = {}
 
-
     def get_captcha(self):
         ret = False
         self._captcha_id = uuid.uuid4()
-        r = requests.get(CAPTCHA_URL, params={"captchaId": self._captcha_id}, headers=self.get_headers("login"), allow_redirects=False,
+        r = requests.get(CAPTCHA_URL, params={"captchaId": self._captcha_id},
+                         headers=self.get_headers(referer=LOGIN_URL),
+                         allow_redirects=False,
                          timeout=10)
         if r.status_code == 200 or r.status_code == 302:
             self._captcha = ddddocr.DdddOcr().classification(r.content)
@@ -71,7 +73,8 @@ class SGCCData:
         return ret
 
     def get_public_key(self):
-        r = requests.get(PUBLIC_KEY_URL + f"?_={int(time.time() * 1000)}", headers=self.get_headers("login"), timeout=10)
+        r = requests.get(PUBLIC_KEY_URL + f"?_={int(time.time() * 1000)}", headers=self.get_headers(referer=LOGIN_URL),
+                         timeout=10)
         if r.status_code == 200:
             result = r.json()
             self._modulus = base64.b64decode(result["modulus"]).hex()
@@ -85,7 +88,7 @@ class SGCCData:
 
     def login(self):
 
-        r = requests.get(LOGIN_URL, headers=self.get_headers("login"), allow_redirects=False, timeout=10)
+        r = requests.get(LOGIN_URL, headers=self.get_headers(LOGIN_URL), allow_redirects=False, timeout=10)
         if r.status_code == 200 or r.status_code == 302:
             if "Set-Cookie" in r.headers:
                 set_cookies = r.headers["Set-Cookie"].split("Path=/, ")
@@ -121,8 +124,6 @@ class SGCCData:
             "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cookie": "; ".join([str(x) + "=" + str(y) for x, y in self._cookies.items()]),
         }
-        username = ""
-        password = ''
 
         self.get_public_key()
         data = {
@@ -153,7 +154,7 @@ class SGCCData:
                     ret = True
                 else:
                     if r.json()["content"] == "验证码输入错误":
-                        self.login()
+                        ret = self.login()
 
             else:
                 _LOGGER.error(f"login response status_code = {r.status_code}")
@@ -161,11 +162,11 @@ class SGCCData:
             _LOGGER.error(f"login response got error: {e}")
         return ret
 
-    def get_headers(self, referer_type=None, referer_url=None):
+    def get_headers(self, referer=None):
 
         headers = {
             "Host": "www.sd.sgcc.com.cn",
-            "Referer": LOGIN_URL if referer_type == "login" else f"{BASE_SITE}/powerCommon/allMenu.jhtml",
+            "Referer": referer if referer is not None else f"{BASE_SITE}/powerCommon/allMenu.jhtml",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
                       "image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
             "Accept-Language": "zh-cn",
@@ -183,7 +184,7 @@ class SGCCData:
         try:
             r = requests.get(MENU_URL, headers=headers, timeout=10)
             if r.status_code == 200:
-                doc = PyQuery(r.text)
+                doc = pq(r.text)
                 cons = doc.find("ul#consUl>li>a[name]")
                 if len(cons) > 1:
                     selected_cons = cons("a.selectedCons")
@@ -194,7 +195,7 @@ class SGCCData:
 
                     others_cons = cons("a:not(.selectedCons)")
                     for others in others_cons:
-                        another_cons = PyQuery(others)
+                        another_cons = pq(others)
                         cons_no = another_cons.attr("name")
                         if cons_no not in self._info:
                             _LOGGER.debug(f"Got ConsNo {cons_no}")
@@ -212,9 +213,11 @@ class SGCCData:
         return ret
 
     def change_cons_no(self, cons_no):
-        headers = self.get_headers()
-        r = requests.get(CHANGE_CONS_NO_URL, data={"curConsNo": cons_no,
-                                                   "_": int(time.time() * 1000)}, headers=headers, timeout=10)
+        params = {
+            "curConsNo": cons_no,
+            "_": int(time.time() * 1000)
+        }
+        r = requests.get(CHANGE_CONS_NO_URL, params=params, headers=self.get_headers(), timeout=10)
         ret = False
         if r.status_code == 200 and r.json()["type"] == "success":
             ret = True
@@ -226,106 +229,43 @@ class SGCCData:
     def power_trend_days(self, cons_no):
         r = requests.get(POWER_TREND_DAY_URL, headers=self.get_headers(), timeout=10)
         if r.status_code == 200:
-            doc = PyQuery(r.text)
+            doc = pq(r.text)
             self._info[f"{cons_no}_consumption_daily"] = dict(zip(doc.find('input#ymList').val().split(","),
                                                                   doc.find('input#dlList').val().split(",")))
 
     def meter(self, cons_no):
-        p = PyQuery(url=VIRTUAL_METER_URL, headers=self.get_headers())
+        p = pq(url=VIRTUAL_METER_URL, headers=self.get_headers())
         script = p('script:contains("var assetList =")')
-        assets = re.search(r"var assetList = \[(.*?)\]", script).group(1).split(",")
+        assets = re.search(r"var assetList = \[(.*?)\]", script.text()).group(1).split(",")
 
         for asset in assets:
             data = {
-                "assetNo": asset,
+                "assetNo": asset.strip().strip("\""),
                 "fromToday": 0,
                 "_": int(time.time() * 1000)
             }
             r = requests.get(METER_READ_URL, params=data,
-                             headers=self.get_headers(referer_url=VIRTUAL_METER_URL), timeout=10)
+                             headers=self.get_headers(referer=VIRTUAL_METER_URL), timeout=10)
             if r.status_code == 200:
                 self._info[cons_no]["meter_now"] = r.json()
 
+    def get_balance(self, cons_no):
+        d = pq(url=BALANCE_DETAIL_URL, headers=self.get_headers())
 
-    def get_balance(self, consNo):
-        headers = self.get_headers()
-        data = {
-            "consNo": consNo
-        }
-        ret = True
-        try:
-            r = requests.post(REMAIN_URL, data, headers=headers, timeout=10)
-            if r.status_code == 200:
-                _LOGGER.debug(f"getBalance response: {r.text}")
-                result = r.json()
-                if result["status"] == 0:
-                    self._info[consNo]["balance"] = result["data"]["BALANCE_SHEET"]
-                    self._info[consNo]["last_update"] = result["data"]["AS_TIME"]
-                else:
-                    ret = False
-                    _LOGGER.error(f"getBalance error:{result['msg']}")
-            else:
-                ret = False
-                _LOGGER.error(f"getBalance response status_code = {r.status_code}")
-        except Exception as e:
-            ret = False
-            _LOGGER.error(f"getBalance response got error: {e}")
-        return ret
+        result = d.find(".result>.tableCommon>tr")
+        balances = pq(result[0])("td>span")
+        self._info[cons_no]["bill"] = pq(balances[0]).text().lstrip("-")
+        self._info[cons_no]["balance"] = pq(balances[2]).text().lstrip("-")
 
     def get_detail(self, cons_no):
-        headers = self.get_headers()
-        params = {
-            "consNo": cons_no
-        }
-        ret = True
-        try:
-            r = requests.get(DETAIL_URL, params=params, headers=headers, timeout=10)
-            if r.status_code == 200:
-                _LOGGER.debug(f"getDetail response: {r.text}")
-                result = r.json()
-                if result["status"] == 0:
-                    data = result["data"]
-                    bill_size = len(data["billDetails"])
-                    if data["isFlag"] == "1":  # 阶梯用户是否这么判断？ 瞎蒙的
-                        self._info[cons_no]["current_level"] = 3
-                        for n in range(0, len(LEVEL_REMAIN)):
-                            if int(data[LEVEL_REMAIN[n]]) > 0:
-                                self._info[cons_no]["current_level"] = n + 1
-                                break
-                        for n in range(0, bill_size):
-                            if int(data["billDetails"][n]["LEVEL_NUM"]) == self._info[cons_no]["current_level"]:
-                                self._info[cons_no]["current_price"] = data["billDetails"][n]["KWH_PRC"]
-                                break
-                        key = LEVEL_CONSUME[self._info[cons_no]["current_level"] - 1]
-                        self._info[cons_no]["current_level_consume"] = int(data[key])
-                        if self._info[cons_no]["current_level"] < 3:
-                            key = LEVEL_REMAIN[self._info[cons_no]["current_level"] - 1]
-                            self._info[cons_no]["current_level_remain"] = int(data[key])
-                        else:
-                            self._info[cons_no]["current_level_remain"] = "∞"
-                    else:
-                        bill_range = []
-                        for n in range(0, bill_size):
-                            bill_range.append(data["billDetails"][n]["PRC_TS_NAME"])
-                        pgv_type = get_pgv_type(bill_range)
-                        for n in range(0, bill_size):
-                            if data["billDetails"][n]["PRC_TS_NAME"] == pgv_type:
-                                self._info[cons_no]["current_price"] = data["billDetails"][n]["KWH_PRC"]
-                                self._info[cons_no]["current_pgv_type"] = data["billDetails"][n]["PRC_TS_NAME"]
-                                break
-                    self._info[cons_no]["year_consume"] = data["TOTAL_ELEC"]
-                    self._info[cons_no]["year_consume_bill"] = data["TOTAL_ELECBILL"]
-                    self._info[cons_no]["year"] = int(data["currentYear"])
-                else:
-                    ret = False
-                    _LOGGER.error(f"getDetail error: {result['msg']}")
-            else:
-                ret = False
-                _LOGGER.error(f"getDetail response status_code = {r.status_code}")
-        except Exception as e:
-            ret = False
-            _LOGGER.error(f"getDetail response got error: {e}")
-        return ret
+        d = pq(LADDER_URL, headers=self.get_headers())
+        ladder = pq(d.find(".new-text-title_tmp>span>span")[1]).text()
+        ladder = 1 if ladder == "一" else 2 if ladder == "二" else 3
+        tr = d.find(".jtydtable>tr")[ladder]
+        if tr is not None:
+            result = pq(pq(tr)("td"))
+            self._info[cons_no]["current_level_consume"] = result[1]
+            self._info[cons_no]["current_level_remain"] = result[2]
 
     def get_bill_by_year(self, cons_no):
         headers = self.get_headers()
@@ -352,13 +292,15 @@ class SGCCData:
                                 self._info[cons_no]["history"][i] = {}
                                 self._info[cons_no]["history"][i]["name"] = monthBills[period - i - 1]["AMT_YM"]
                                 self._info[cons_no]["history"][i]["consume"] = monthBills[period - i - 1]["SUM_ELEC"]
-                                self._info[cons_no]["history"][i]["consume_bill"] = monthBills[period - i - 1]["SUM_ELECBILL"]
+                                self._info[cons_no]["history"][i]["consume_bill"] = monthBills[period - i - 1][
+                                    "SUM_ELECBILL"]
                         else:
                             for i in range(12 - period):
                                 self._info[cons_no]["history"][11 - i] = {}
                                 self._info[cons_no]["history"][11 - i]["name"] = monthBills[period + i]["AMT_YM"]
                                 self._info[cons_no]["history"][11 - i]["consume"] = monthBills[period + i]["SUM_ELEC"]
-                                self._info[cons_no]["history"][11 - i]["consume_bill"] = monthBills[period + i]["SUM_ELECBILL"]
+                                self._info[cons_no]["history"][11 - i]["consume_bill"] = monthBills[period + i][
+                                    "SUM_ELECBILL"]
                     else:
                         _LOGGER.error(f"getBillByYear error: {result['msg']}")
                 else:
@@ -373,8 +315,8 @@ class SGCCData:
             self.meter(cons_no)
             self.change_cons_no(cons_no)
             self.power_trend_days(cons_no)
-            # self.get_balance(cons_no)
-            # self.get_detail(cons_no)
+            self.get_balance(cons_no)
+            self.get_detail(cons_no)
             # self.get_bill_by_year(cons_no)
         _LOGGER.debug(f"Data {self._info}")
         return self._info

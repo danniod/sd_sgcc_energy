@@ -15,7 +15,6 @@ sd_sgcc_energy:
   username: '13888888888' 
   password: 'password'
 ```
-()
 重新启动Home Assistant
 
 # 特性
