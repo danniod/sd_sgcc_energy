@@ -257,11 +257,13 @@ class SGCCData:
         d = pq(LADDER_URL, headers=self.get_headers())
         ladder = pq(d.find(".new-text-title_tmp>span>span")[1]).text()
         ladder = 1 if ladder == "一" else 2 if ladder == "二" else 3
+        self._info[cons_no]["current_level"] = ladder
         tr = d.find(".jtydtable>tr")[ladder]
         if tr is not None:
             result = pq(pq(tr)("td"))
-            self._info[cons_no]["current_level_consume"] = result[1]
-            self._info[cons_no]["current_level_remain"] = result[2]
+            self._info[cons_no]["current_level_consume"] = result[1].text
+            self._info[cons_no]["current_level_remain"] = result[2].text
+            self._info[cons_no]["current_level_remain_percent"] = result[3].text
 
     def get_bill_by_year(self, cons_no):
         headers = self.get_headers()
