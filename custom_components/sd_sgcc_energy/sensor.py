@@ -2,6 +2,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.const import(
     DEVICE_CLASS_ENERGY,
     ENERGY_KILO_WATT_HOUR,
+    PERCENTAGE,
     STATE_UNKNOWN
 )
 from .const import DOMAIN
@@ -9,6 +10,12 @@ from .const import DOMAIN
 SGCC_SENSORS = {
     "balance": {
         "name": "电费余额",
+        "icon": "hass:cash-100",
+        "unit_of_measurement": "元",
+        "attributes": ["last_update"]
+    },
+    "bill": {
+        "name": "当月电费（估算）",
         "icon": "hass:cash-100",
         "unit_of_measurement": "元",
         "attributes": ["last_update"]
@@ -32,9 +39,15 @@ SGCC_SENSORS = {
         "device_class": DEVICE_CLASS_ENERGY,
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
+    "current_level_remain_percent": {
+        "name": "当前阶梯剩余可用率",
+        "device_class": DEVICE_CLASS_ENERGY,
+        "unit_of_measurement": PERCENTAGE
+    },
     "meter_display": {
         "name": "电能表示数",
-        "icon": "hass:meter-electric"
+        "icon": "hass:meter-electric",
+        "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
     "year_consume": {
         "name": "本年度用电量",

@@ -263,7 +263,7 @@ class SGCCData:
             result = pq(pq(tr)("td"))
             self._info[cons_no]["current_level_consume"] = result[1].text
             self._info[cons_no]["current_level_remain"] = result[2].text
-            self._info[cons_no]["current_level_remain_percent"] = result[3].text
+            self._info[cons_no]["current_level_remain_percent"] = result[3].text.rstrip("%")
 
     def get_bill_by_year(self, cons_no):
         headers = self.get_headers()
