@@ -1,7 +1,6 @@
 import requests
 import logging
 import uuid
-import ddddocr
 import time
 import rsa
 import hashlib
@@ -49,7 +48,8 @@ def get_pgv_type(bill_range):
 
 
 class SGCCData:
-    def __init__(self, username, password):
+    def __init__(self, username, password, ocr_url=None):
+        self._ocr_url = ocr_url
         self._username = username
         self._password = password
         self._exponent = None
@@ -67,7 +67,8 @@ class SGCCData:
                          allow_redirects=False,
                          timeout=10)
         if r.status_code == 200 or r.status_code == 302:
-            self._captcha = ddddocr.DdddOcr().classification(r.content)
+            res = requests.post(self._ocr_url, data=r.content)
+            self._captcha = res.text
             ret = True
             _LOGGER.debug(f"get captcha[{self._captcha}] with id[{self._captcha_id}]")
         return ret

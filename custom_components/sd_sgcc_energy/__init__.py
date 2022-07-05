@@ -17,8 +17,9 @@ async def async_setup(hass: HomeAssistant, hass_config: dict):
     config = hass_config[DOMAIN]
     username = config.get("username")
     password = config.get("password")
+    ocr_url = config.get("captcha_ocr")
     if username is not None or password is not None:
-        coordinator = GJDWCorrdinator(hass, username, password)
+        coordinator = GJDWCorrdinator(hass, username, password, ocr_url)
         hass.data[DOMAIN] = coordinator
         await coordinator.async_refresh()
         hass.async_create_task(discovery.async_load_platform(
@@ -29,7 +30,7 @@ async def async_setup(hass: HomeAssistant, hass_config: dict):
 
 
 class GJDWCorrdinator(DataUpdateCoordinator):
-    def __init__(self, hass, username, password):
+    def __init__(self, hass, username, password, ocr_url):
         super().__init__(
             hass,
             _LOGGER,
@@ -37,7 +38,7 @@ class GJDWCorrdinator(DataUpdateCoordinator):
             update_interval=UPDATE_INTERVAL
         )
         self._hass = hass
-        self._sgcc = SGCCData(username, password)
+        self._sgcc = SGCCData(username, password, ocr_url)
 
     async def _async_update_data(self):
         _LOGGER.debug("Data updating...")
