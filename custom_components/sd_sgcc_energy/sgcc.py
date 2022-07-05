@@ -243,7 +243,7 @@ class SGCCData:
             r = requests.get(METER_READ_URL, params=data,
                              headers=self.get_headers(referer=VIRTUAL_METER_URL), timeout=10)
             if r.status_code == 200:
-                self._info[cons_no]["meter_now"] = r.json()
+                self._info[cons_no]["meter_display"] = r.json()["dayRead0"]
 
     def get_balance(self, cons_no):
         d = pq(url=BALANCE_DETAIL_URL, headers=self.get_headers())

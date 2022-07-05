@@ -32,6 +32,10 @@ SGCC_SENSORS = {
         "device_class": DEVICE_CLASS_ENERGY,
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
+    "meter_display": {
+        "name": "电能表示数",
+        "icon": "hass:meter-electric"
+    },
     "year_consume": {
         "name": "本年度用电量",
         "device_class": DEVICE_CLASS_ENERGY,
