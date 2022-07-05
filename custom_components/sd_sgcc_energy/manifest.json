@@ -6,6 +6,6 @@
   "issue_tracker": "https://github.com/danniod/sd_sgcc_energy/issues",
   "iot_class": "cloud_polling",
   "dependencies": [],
-  "requirements": [],
+  "requirements": ["rsa~=4.8","pyquery~=1.4.3"],
   "codeowners": ["@danniod","@georgezhao2010"]
 }

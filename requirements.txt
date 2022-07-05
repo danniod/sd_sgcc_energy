@@ -1,0 +1,6 @@
+Flask~=2.1.2
+ddddocr~=1.4.3
+requests~=2.27.1
+rsa~=4.8
+pyquery~=1.4.3
+homeassistant~=2022.6.4
