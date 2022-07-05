@@ -311,7 +311,12 @@ class SGCCData:
 
     def get_data(self):
 
-        self.get_cons_no()
+        retry = 0
+        while not self.get_cons_no():
+            if ++retry >= 3:
+                _LOGGER.warning("login failure 3 times, cancel the task")
+                return
+            self.login()
         for cons_no in self._info.keys():
             self.meter(cons_no)
             self.change_cons_no(cons_no)
