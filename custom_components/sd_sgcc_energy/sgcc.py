@@ -56,6 +56,7 @@ class SGCCData:
         self._modulus = None
         self._captcha_id = None
         self._captcha = None
+        self._cons = []
         self._info = {}
         self._cookies = {}
 
@@ -187,23 +188,17 @@ class SGCCData:
             if r.status_code == 200:
                 doc = pq(r.text)
                 cons = doc.find("ul#consUl>li>a[name]")
-                if len(cons) > 1:
-                    selected_cons = cons("a.selectedCons")
-                    cons_no = selected_cons.attr("name")
-                    if cons_no not in self._info:
-                        _LOGGER.debug(f"Got ConsNo {cons_no}")
-                        self._info[cons_no] = {"cons_name": selected_cons.text()[0:selected_cons.text().index("(")]}
-
-                    others_cons = cons("a:not(.selectedCons)")
-                    for others in others_cons:
-                        another_cons = pq(others)
+                if len(cons) > 0:
+                    for c in cons:
+                        another_cons = pq(c)
                         cons_no = another_cons.attr("name")
-                        if cons_no not in self._info:
+                        if cons_no not in self._cons:
+                            self._cons.append(cons_no)
                             _LOGGER.debug(f"Got ConsNo {cons_no}")
                             self._info[cons_no] = {"cons_name": another_cons.text()[0:another_cons.text().index("(")]}
                 else:
                     ret = False
-                    _LOGGER.error(f"getConsNo error: no cons[{cons}]")
+                    _LOGGER.info(f"no cons, need login")
             else:
                 ret = False
                 _LOGGER.error(f"getConsNo response status_code = {r.status_code}")
@@ -222,7 +217,7 @@ class SGCCData:
         ret = False
         if r.status_code == 200 and r.json()["type"] == "success":
             ret = True
-            _LOGGER.debug("change consNo success")
+            _LOGGER.debug(f"change consNo{cons_no} success")
         else:
             _LOGGER.error(f"getBalance response status_code = {r.status_code}")
         return ret
@@ -317,9 +312,9 @@ class SGCCData:
                 _LOGGER.warning("login failure 3 times, cancel the task")
                 return
             self.login()
-        for cons_no in self._info.keys():
-            self.meter(cons_no)
+        for cons_no in self._cons:
             self.change_cons_no(cons_no)
+            self.meter(cons_no)
             self.power_trend_days(cons_no)
             self.get_balance(cons_no)
             self.get_detail(cons_no)
