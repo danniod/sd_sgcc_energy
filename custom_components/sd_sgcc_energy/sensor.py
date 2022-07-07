@@ -87,10 +87,10 @@ class SGCCSensor(CoordinatorEntity):
         self._config = SGCC_SENSORS[self._sensor_key]
         self._attributes = self._config.get("attributes")
         self._coordinator = coordinator
-        self._unique_id = f"{DOMAIN}.{cons_no}_{sensor_key}"
+        self._unique_id = f"{DOMAIN}.{sensor_key}_{cons_no}"
         self.entity_id = self._unique_id
 
-    def get_value(self, attribute = None):
+    def get_value(self, attribute=None):
         try:
             if attribute is None:
                 return self._coordinator.data.get(self._cons_no).get(self._sensor_key)
@@ -108,7 +108,7 @@ class SGCCSensor(CoordinatorEntity):
 
     @property
     def name(self):
-        return self._config.get("name")
+        return f"{self._config.get('name')}_{self._cons_no}"
 
     @property
     def state(self):
