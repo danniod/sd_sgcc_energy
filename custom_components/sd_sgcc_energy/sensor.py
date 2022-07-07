@@ -10,65 +10,65 @@ from .const import DOMAIN
 SGCC_SENSORS = {
     "balance": {
         "name": "电费余额",
-        "icon": "hass:cash-100",
+        "icon": "mdi:wallet",
         "unit_of_measurement": "元",
         "attributes": ["last_update"]
     },
     "bill": {
         "name": "当月电费（估算）",
-        "icon": "hass:cash-100",
+        "icon": "mdi:credit-card-fast",
         "unit_of_measurement": "元",
         "attributes": ["last_update"]
     },
     "current_level": {
         "name": "当前用电阶梯",
-        "icon": "hass:stairs"
-    },
+        "icon": "mdi:chart-gantt",
+        "unit_of_measurement": "level",
+
+},
     "current_price": {
         "name": "当前电价",
-        "icon": "hass:cash-100",
+        "icon": "mdi:cash-100",
         "unit_of_measurement": "CNY/kWh"
     },
     "current_level_consume": {
-        "name": "当前阶梯用电",
-        "device_class": DEVICE_CLASS_ENERGY,
+        "name": "当前阶梯用电量",
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
     "current_level_remain": {
         "name": "当前阶梯剩余额度",
-        "device_class": DEVICE_CLASS_ENERGY,
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
     "current_level_remain_percent": {
         "name": "当前阶梯剩余可用率",
-        "device_class": DEVICE_CLASS_ENERGY,
+        "icon": "mdi:label-percent",
         "unit_of_measurement": PERCENTAGE
     },
     "meter_display": {
         "name": "电能表示数",
-        "icon": "hass:meter-electric",
+        "icon": "mdi:meter-electric",
+        "device_class": DEVICE_CLASS_ENERGY,
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
     "year_consume": {
         "name": "本年度用电量",
-        "device_class": DEVICE_CLASS_ENERGY,
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
     "year_consume_bill": {
         "name": "本年度电费",
-        "icon": "hass:cash-100",
+        "icon": "mdi:cash-100",
         "unit_of_measurement": "元"
     },
     "current_pgv_type": {
         "name": "当前电价类别",
-        "icon": "hass:cash-100"
+        "icon": "mdi:cash-100"
     }
 }
 
 
-async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
+async def async_setup_platform(mdi, config, async_add_devices, discovery_info=None):
     sensors = []
-    coordinator = hass.data[DOMAIN]
+    coordinator = mdi.data[DOMAIN]
     data = coordinator.data
     for cons_no, values in data.items():
         for key in SGCC_SENSORS.keys():
