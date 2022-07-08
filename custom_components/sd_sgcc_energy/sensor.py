@@ -15,7 +15,7 @@ SGCC_SENSORS = {
         "attributes": ["last_update"]
     },
     "bill": {
-        "name": "当月电费（估算）",
+        "name": "当月电费",
         "icon": "mdi:credit-card-fast",
         "unit_of_measurement": "元",
         "attributes": ["last_update"]
@@ -24,8 +24,7 @@ SGCC_SENSORS = {
         "name": "当前用电阶梯",
         "icon": "mdi:chart-gantt",
         "unit_of_measurement": "level",
-
-},
+    },
     "current_price": {
         "name": "当前电价",
         "icon": "mdi:cash-100",
@@ -33,15 +32,17 @@ SGCC_SENSORS = {
     },
     "current_level_consume": {
         "name": "当前阶梯用电量",
+        "icon": "mdi:lightning-bolt",
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
     "current_level_remain": {
         "name": "当前阶梯剩余额度",
+        "icon": "mdi:lightning-bolt-circle",
         "unit_of_measurement": ENERGY_KILO_WATT_HOUR
     },
     "current_level_remain_percent": {
         "name": "当前阶梯剩余可用率",
-        "icon": "mdi:label-percent",
+        "icon": "mdi:percent-circle",
         "unit_of_measurement": PERCENTAGE
     },
     "meter_display": {
@@ -57,7 +58,7 @@ SGCC_SENSORS = {
     "year_consume_bill": {
         "name": "本年度电费",
         "icon": "mdi:cash-100",
-        "unit_of_measurement": "元"
+        "unit_of_measurement": "cny"
     },
     "current_pgv_type": {
         "name": "当前电价类别",
