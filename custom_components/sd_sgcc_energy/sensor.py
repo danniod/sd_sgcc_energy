@@ -11,13 +11,13 @@ SGCC_SENSORS = {
     "balance": {
         "name": "电费余额",
         "icon": "mdi:wallet",
-        "unit_of_measurement": "元",
+        "unit_of_measurement": "CNY",
         "attributes": ["last_update"]
     },
     "bill": {
         "name": "当月电费",
         "icon": "mdi:credit-card-fast",
-        "unit_of_measurement": "元",
+        "unit_of_measurement": "CNY",
         "attributes": ["last_update"]
     },
     "current_level": {
