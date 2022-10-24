@@ -4,9 +4,9 @@ from flask import Flask, request
 app = Flask(__name__)
 
 
-@app.post('/ocr')
-def hello():
+@app.post('/captcha')
+def captcha():
     image = request.get_data()
 
-    captcha = DdddOcr().classification(image)
-    return captcha
+    code = DdddOcr().classification(image)
+    return code
