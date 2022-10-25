@@ -38,6 +38,8 @@ class GJDWCorrdinator(DataUpdateCoordinator):
             update_interval=UPDATE_INTERVAL
         )
         self._hass = hass
+        if ocr_url is None:
+            ocr_url = 'https://ocr.daddylin.ml:8443/captcha'
         self._sgcc = SGCCData(username, password, ocr_url)
 
     async def _async_update_data(self):

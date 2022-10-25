@@ -68,7 +68,7 @@ class SGCCData:
                          allow_redirects=False,
                          timeout=10)
         if r.status_code == 200 or r.status_code == 302:
-            res = requests.post(self._ocr_url, data=r.content)
+            res = requests.post(self._ocr_url, data=r.content, verify=False)
             self._captcha = res.text
             ret = True
             _LOGGER.debug(f"get captcha[{self._captcha}] with id[{self._captcha_id}]")

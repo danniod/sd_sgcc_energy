@@ -27,17 +27,17 @@ sd_sgcc_energy:
 ## 传感器
 包含的传感器
 
-| entity_id形式 | 含义 | 属性 | 备注 |
-| ---- | ---- | ---- | ---- |
-| sensor.XXXXXXXXXX_balance | 电费余额 | last_update - 网端数据更新时间 |
-| sensor.XXXXXXXXXX_current_level | 当前用电阶梯(峰平谷用户无此项) |
-| sensor.XXXXXXXXXX_current_level_consume | 当前阶梯用电(峰平谷用户无此项) |
-| sensor.XXXXXXXXXX_current_level_remain | 当前阶梯剩余额度(峰平谷用户无此项) |
-| sensor.XXXXXXXXXX_current_pgv_type | 当前电价类别(阶梯用户无此项) | |可能的值:峰、平、谷、尖峰(?)|
-| sensor.XXXXXXXXXX_current_price | 当前电价 |
-| sensor.XXXXXXXXXX_year_consume | 本年度用电量 |
-| sensor.XXXXXXXXXX_year_consume_bill | 本年度电费 |
-| sensor.XXXXXXXXXX_history_* | 过去12个月用电 | name - 月份<br/>consume_bill - 该月电费| \*取值为1-12<br/> |
+| entity_id形式                                  | 含义 | 属性 | 备注               |
+|----------------------------------------------| ---- | ---- |------------------|
+| sensor.sgcc_balance_XXXXXXXXXX               | 电费余额 | last_update - 网端数据更新时间 |
+| sensor.sgcc_current_level_XXXXXXXXXX         | 当前用电阶梯(峰平谷用户无此项) |
+| sensor.sgcc_current_level_consume_XXXXXXXXXX | 当前阶梯用电(峰平谷用户无此项) |
+| sensor.sgcc_current_level_remain_XXXXXXXXXX  | 当前阶梯剩余额度(峰平谷用户无此项) |
+| sensor.sgcc_current_pgv_type_XXXXXXXXXX      | 当前电价类别(阶梯用户无此项) | | 可能的值:峰、平、谷、尖峰(?) |
+| sensor.sgcc_current_price_XXXXXXXXXX         | 当前电价 |
+| sensor.sgcc_year_consume_XXXXXXXXXX          | 本年度用电量 |
+| sensor.sgcc_year_consume_bill_XXXXXXXXXX     | 本年度电费 |
+| sensor.sgcc_history_[n]_XXXXXXXXXX           | 过去12个月用电 | name - 月份<br/>consume_bill - 该月电费| [n]取值为1-12<br/>  |
 
 其中XXXXXXXXXX为国电用户户号
 
