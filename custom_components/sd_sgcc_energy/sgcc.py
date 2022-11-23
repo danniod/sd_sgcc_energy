@@ -248,10 +248,8 @@ class SGCCData:
     def get_balance(self, cons_no):
         d = pq(url=BALANCE_DETAIL_URL, headers=self.get_headers())
 
-        result = d.find(".result>.tableCommon>tr")
-        balances = pq(result[0])("td>span")
-        self._info[cons_no]["bill"] = pq(balances[0]).text().lstrip("-")
-        self._info[cons_no]["balance"] = pq(balances[2]).text().lstrip("-")
+        self._info[cons_no]["bill"] = d.find(".num.goNewBill").text()
+        self._info[cons_no]["balance"] = d.find(".num.goBalanceDetail").text()
 
     def get_detail(self, cons_no):
         d = pq(LADDER_URL, headers=self.get_headers())
@@ -319,7 +317,7 @@ class SGCCData:
             self.meter(cons_no)
             self.power_trend_days(cons_no)
             self.get_balance(cons_no)
-            self.get_detail(cons_no)
+            # self.get_detail(cons_no)
             # self.get_bill_by_year(cons_no)
         _LOGGER.debug(f"Data {self._info}")
         return self._info
